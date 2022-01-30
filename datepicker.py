@@ -82,7 +82,7 @@ print(stime, current_time(), stime == current_time())
 # Current date
 def current_date():
     dat = date()
-    return [dat.day, dat.month, dat.year]   # [int, int, int] - [dd, mm, yyyy]
+    return [dat.day, dat.month, dat.year]   # [int, int, int] - [dd, mm, yyyy] # TO BE USED: YYYY-MM-DD #
 today = [d.day, d.month, d.year]
 # Compare selected date with current date  
 print(today, sdate, sdate == today)
