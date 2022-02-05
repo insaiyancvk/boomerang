@@ -19,11 +19,8 @@ SCOPES = [
 creds = None
 
 if os.path.exists('token.json'):
-    # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    creds = Credentials.from_authorized_user_file('templates/token.json', SCOPES)
+    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
-
-# print(help(creds))
 if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
