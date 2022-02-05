@@ -4,3 +4,5 @@ token.json
 spam.json
 boomerand.json
 flask_token.json
+__pycache__
+*.db
