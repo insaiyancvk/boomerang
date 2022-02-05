@@ -10,7 +10,7 @@ from googleapiclient.discovery import build
 from rich.table import Table
 from rich.console import Console
 
-SERVER_IP_ADDRESS = 'http://192.168.1.7:5000/'
+SERVER_IP_ADDRESS = 'http://192.168.1.7:5000/' # TODO: automatically scan all the dynamic ip adresses on LAN and detect the server
 
 def get_local_ip():
     import subprocess as sp
