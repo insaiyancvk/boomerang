@@ -1,8 +1,5 @@
 env/*
-credentials.json
-token.json
-spam.json
-boomerand.json
-flask_token.json
+*.json
 __pycache__
 *.db
+SERVERIP
