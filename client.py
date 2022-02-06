@@ -10,8 +10,6 @@ from googleapiclient.discovery import build
 from rich.table import Table
 from rich.console import Console
 
-SERVER_IP_ADDRESS = 'http://192.168.1.7:5000/' # TODO: automatically scan all the dynamic ip adresses on LAN and detect the server
-
 def get_local_ip():
     import subprocess as sp
 
@@ -21,21 +19,55 @@ def get_local_ip():
     for i in out.split('\n'):
         details.append(i.split())
 
-    arp = {
-        'Internet Address': [],
-        'Physical Address': [],
-        'Type': []
-    }
+    ips = []
 
     for i in details:
-        if len(i) != 0 and i[0] != 'Interface:' and i[0] != 'Internet':
-            arp['Internet Address'].append(i[0])
-            arp['Physical Address'].append(i[1])
-            arp['Type'].append(i[2])
+        if len(i) != 0 and i[0] != 'Interface:' and i[0] != 'Internet' and i[2] == 'dynamic':
+            ips.append(i[0])
 
-    return arp
+    return ips
 
-def requester(date, draft_id):
+def get_server_ip():
+
+    if not os.path.exists('SERVERIP'):
+    
+        ips = get_local_ip()
+
+        ips = [f'http://{i}:5000/' for i in ips]
+
+        print('Searching for server...')
+
+        SERVERIP = None
+
+        for i in ips:
+            try:
+                if requests.get(i).text == 'Sup GAMER':
+                    SERVERIP = i
+            except:
+                continue
+        
+        if not SERVERIP:
+            print('Server not found on LAN. Exiting.')
+            exit()
+
+        else:
+            with open('SERVERIP','w') as f:
+                _ = f.write(SERVERIP)
+            return SERVERIP
+    else:
+
+        with open('SERVERIP','r') as f:
+            SERVERIP = f.read()
+        
+        if requests.get(SERVERIP).text == 'Sup GAMER':
+            return SERVERIP
+        
+        else:
+            os.remove('SERVERIP')
+            get_server_ip()
+
+
+def requester(SERVER_IP_ADDRESS, date, draft_id):
     boomerang_endpoint = f"{SERVER_IP_ADDRESS}boomerang"
     requests.post(url=boomerang_endpoint, json = {'time':date, 'draft_id':draft_id})
 
@@ -78,6 +110,8 @@ if __name__ == '__main__':
     else:
         start_auth() # Create a token by completing auth flow
 
+    SERVER_IP_ADDRESS = get_server_ip()
+
     if requests.get(SERVER_IP_ADDRESS+'/checkToken').status_code == 404: # Check if token.json exists in server
         with open('token.json', 'r') as f:
             requests.post(SERVER_IP_ADDRESS+'authtoken', json = json.load(f)) # make a post request and send token.json
@@ -87,8 +121,6 @@ if __name__ == '__main__':
     print('Reading the drafts...')
 
     drafts = [i['id'] for i in list_drafts(service)['drafts']]
-
-    # print(drafts)
 
     n = 1
     for i in drafts:
