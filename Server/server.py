@@ -15,10 +15,10 @@ scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{db_path}')
 scheduler.start()
 
 SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send',
+    # 'https://www.googleapis.com/auth/gmail.readonly',
+    # 'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.compose',
-    'https://www.googleapis.com/auth/gmail.addons.current.action.compose'
+    # 'https://www.googleapis.com/auth/gmail.addons.current.action.compose'
     ]
 
 app = Flask(__name__, template_folder='templates')
@@ -60,16 +60,12 @@ def boomerang():
     if not os.path.exists('token.json'):
         return 'Token not found.',404
 
-    # parser = reqparse.RequestParser()
-    # parser.add_argument('time', required = True)
-    # parser.add_argument('draft_id', required=True)
-
     data = request.get_json()
 
     time = data['time']
     draft_id = data['draft_id']
 
-    print(time, draft_id)
+    # print(time, draft_id)
 
     date_time = datetime.strptime(str(time), '%Y-%m-%dT%H:%M')
 

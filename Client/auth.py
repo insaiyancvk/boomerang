@@ -1,6 +1,6 @@
-import sys
+import sys,  json, os, flask, logging
 from threading import Timer
-import json, os, flask
+from werkzeug.utils import secure_filename
 
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
@@ -9,23 +9,41 @@ import googleapiclient.discovery
 CLIENT_SECRETS_FILE = "credentials.json"
 
 SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send',
+    # 'https://www.googleapis.com/auth/gmail.readonly',
+    # 'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.compose',
-    'https://www.googleapis.com/auth/gmail.addons.current.action.compose'
+    # 'https://www.googleapis.com/auth/gmail.addons.current.action.compose'
     ]
 
 API_SERVICE_NAME = 'gmail'
 API_VERSION = 'v1'
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, template_folder='.')
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 @app.route('/')
 def home():
     return flask.redirect('/authorize')
 
+@app.route('/upload')
+def upload_page():
+   return flask.render_template('upload.html')
+
+@app.route('/uploader', methods = ['GET', 'POST'])
+def upload_file():
+   if flask.request.method == 'POST':
+      f = flask.request.files['file']
+      f.save(secure_filename(f.filename))
+      return flask.redirect('/authorize')
+
 @app.route('/authorize')
 def authorize():
+
+    if not os.path.exists(CLIENT_SECRETS_FILE):
+        return flask.redirect('/upload')
+    
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = CLIENT_SECRETS_FILE
     
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
