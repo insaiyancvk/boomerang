@@ -1,4 +1,5 @@
-import requests, os, json, msvcrt
+import sys
+import requests, os, json, msvcrt, time
 from auth import SCOPES
 from auth import start_auth
 from datepicker import formatted_datetime
@@ -43,6 +44,8 @@ def get_server_ip():
             try:
                 if requests.get(i).text == 'Sup GAMER':
                     SERVERIP = i
+                    print(f'Server found.\nServer IPv4: {SERVERIP}\n')
+                    break
             except:
                 continue
         
@@ -100,10 +103,14 @@ def clear_screen():
 if __name__ == '__main__':
 
     creds = None
+    new = False
 
     if os.path.exists('token.json'): # Check if token.json exists in client's system
         creds = Credentials.from_authorized_user_file('token.json', SCOPES) # Load the credentials
-    
+    else:
+        new = True
+        start_auth()
+
     if not creds or not creds.valid: # Check if the token is valid
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -111,6 +118,9 @@ if __name__ == '__main__':
         start_auth() # Create a token by completing auth flow
 
     SERVER_IP_ADDRESS = get_server_ip()
+
+    if new and (requests.get(SERVER_IP_ADDRESS+'/checkToken').status_code == 200):
+        requests.get(SERVER_IP_ADDRESS+'/remToken')
 
     if requests.get(SERVER_IP_ADDRESS+'/checkToken').status_code == 404: # Check if token.json exists in server
         with open('token.json', 'r') as f:
@@ -120,7 +130,11 @@ if __name__ == '__main__':
 
     print('Reading the drafts...')
 
-    drafts = [i['id'] for i in list_drafts(service)['drafts']]
+    try:
+        drafts = [i['id'] for i in list_drafts(service)['drafts']]
+    except KeyError:
+        print("No drafts found. Exiting.")
+        sys.exit()
 
     n = 1
     for i in drafts:
@@ -142,12 +156,19 @@ if __name__ == '__main__':
         table.add_column("Receiver")
         table.add_row(str(n), subject, receiver)
         Console().print('\t\t',table)
+
+        if not receiver:
+            print('Receiver field can\'t be empty. This draft is not scheduled.')
+            time.sleep(5)
+            continue
         
         print('Press a key to select date and time')
         _ = msvcrt.getch()
 
         seldatetime = formatted_datetime()
-        requester(seldatetime, i)
+        
+        requester(SERVER_IP_ADDRESS,seldatetime, i)
 
         n += 1
         clear_screen()
+    print('All mails have been scheduled for the selected date and time.')
