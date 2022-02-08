@@ -97,3 +97,7 @@ Client side:
 - You have complete control over the server, client, API, literally everything.
 - The code is open source.
 - Save [$60/year](https://www.boomeranggmail.com/subscriptions.html). Instead get a Raspberry Pi 4 for $50.
+
+## TODO
+- Be able to modify the scheduled date and time
+- List scheduled mails
