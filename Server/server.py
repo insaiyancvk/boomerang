@@ -1,7 +1,7 @@
 from datetime import datetime
 import os, json
 
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-db_path = os.path.abspath(os.getcwd())+"\database.db"
+db_path = os.path.abspath(os.getcwd())+"\\database.db"
 scheduler = BackgroundScheduler({'apscheduler.timezone': 'Asia/Calcutta'})
 scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{db_path}')
 scheduler.start()
@@ -70,10 +70,16 @@ def boomerang():
         send_draft,
         trigger='date',
         next_run_time=str(date_time),
-        args=[draft_id]
+        args=[draft_id],
+        id = draft_id
     )
 
     return 'Boomerang scheduled Successfully', 201
+
+@app.get('/getscheduleid')
+def getscheduleid():
+
+    return jsonify([str(i.id) for i in scheduler.get_jobs()])
 
 def send_draft(draft_id):
     
