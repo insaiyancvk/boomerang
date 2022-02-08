@@ -15,6 +15,8 @@ def all_children (window) :
 def picker():
 
     root = Tk()
+    root.attributes('-topmost',1)
+
     d = date.today()
     
     # Set geometry
@@ -75,7 +77,6 @@ def formatted_datetime():
     in_time = datetime.strptime(t, "%I:%M %p")
     out_time = datetime.strftime(in_time, "%H:%M")
     return str(sdate[2])+"-"+str(sdate[1])+"-"+str(sdate[0])+"T"+out_time
-
 
 # DD/MM/YYYY
 # sdate, stime = picker()
