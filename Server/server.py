@@ -15,10 +15,7 @@ scheduler.add_jobstore('sqlalchemy', url=f'sqlite:///{db_path}')
 scheduler.start()
 
 SCOPES = [
-    # 'https://www.googleapis.com/auth/gmail.readonly',
-    # 'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.compose',
-    # 'https://www.googleapis.com/auth/gmail.addons.current.action.compose'
     ]
 
 app = Flask(__name__, template_folder='templates')
