@@ -1,4 +1,4 @@
-import sys,  json, os, flask, logging
+import sys,  json, os, flask, logging, secrets
 from threading import Timer
 from werkzeug.utils import secure_filename
 
@@ -94,6 +94,8 @@ def test_api_request():
 @app.route('/shutdown')
 def shutdown():
     shutdown_server()
+    clear_screen()
+    print('Authorization completed. Now you can schedule mails :)\n')
     return "Authorization flow completed. You can close the browser"
 
 def shutdown_server():
@@ -110,15 +112,25 @@ def credentials_to_dict(credentials):
           'client_secret': credentials.client_secret,
           'scopes': credentials.scopes}
 
+def clear_screen():
+    if os.name == 'nt':
+        os.system('cls')
+    elif os.name == 'posix':
+        os.system('clear')
+
 def open_browser():
     if sys.platform == 'win32':
+        clear_screen()
+        print('Please check the browser and complete the authorization')
         os.startfile('http://localhost:5000')
     elif sys.platform == 'linux':
+        clear_screen()
+        print('Please check the browser and complete the authorization')
         subprocess.call(['xdg-open','http://localhost:5000'])
 
 def start_auth():
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-    app.secret_key = 'sup GHIJKLMNOPQRSTUVWXYZ'
+    app.secret_key = secrets.token_hex()
     app.config['SESSION_TYLE'] = 'filesystem'
     Timer(1, open_browser).start()
     app.run('localhost', 5000, threaded = True)
