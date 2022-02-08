@@ -1,11 +1,12 @@
-import sys
-import requests, os, json, msvcrt, time
+from datetime import datetime
+import requests, os, json, msvcrt, time, sys
 from auth import SCOPES
 from auth import start_auth
 from datepicker import formatted_datetime
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from google.auth.exceptions import DefaultCredentialsError
 from googleapiclient.discovery import build
 
 from rich.table import Table
@@ -56,6 +57,8 @@ def get_server_ip():
         else:
             with open('SERVERIP','w') as f:
                 _ = f.write(SERVERIP)
+
+            print('\nConnected to the server\n')
             return SERVERIP
     else:
 
@@ -63,6 +66,7 @@ def get_server_ip():
             SERVERIP = f.read()
         
         if requests.get(SERVERIP).text == 'Sup GAMER':
+            print('\nConnected to the server\n')
             return SERVERIP
         
         else:
@@ -100,7 +104,7 @@ def clear_screen():
     elif os.name == 'posix':
         os.system('clear')
 
-if __name__ == '__main__':
+def main():
 
     creds = None
     new = False
@@ -119,16 +123,21 @@ if __name__ == '__main__':
 
     SERVER_IP_ADDRESS = get_server_ip()
 
-    if new and (requests.get(SERVER_IP_ADDRESS+'/checkToken').status_code == 200):
-        requests.get(SERVER_IP_ADDRESS+'/remToken')
+    if new and (requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 200):
+        requests.get(SERVER_IP_ADDRESS+'remToken')
 
-    if requests.get(SERVER_IP_ADDRESS+'/checkToken').status_code == 404: # Check if token.json exists in server
+    if requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 404: # Check if token.json exists in server
         with open('token.json', 'r') as f:
             requests.post(SERVER_IP_ADDRESS+'authtoken', json = json.load(f)) # make a post request and send token.json
 
-    service = build('gmail', 'v1', credentials=creds)
+    try:
+        service = build('gmail', 'v1', credentials=creds)
+    except DefaultCredentialsError:
+        main()  
 
     print('Reading the drafts...')
+
+    time.sleep(3)
 
     try:
         drafts = [i['id'] for i in list_drafts(service)['drafts']]
@@ -138,6 +147,11 @@ if __name__ == '__main__':
 
     n = 1
     for i in drafts:
+
+        clear_screen()
+
+        if i in eval(requests.get(SERVER_IP_ADDRESS+'getscheduleid').text):
+            continue
 
         subject, receiver = 'None', 'None'
 
@@ -162,13 +176,33 @@ if __name__ == '__main__':
             time.sleep(5)
             continue
         
-        print('Press a key to select date and time')
-        _ = msvcrt.getch()
+        print('\n\t\tPress "enter" or "space" to select date and time\n\n\t\tOr any other key to skip this draft')
+        sel = msvcrt.getch()
 
-        seldatetime = formatted_datetime()
-        
-        requester(SERVER_IP_ADDRESS,seldatetime, i)
+        if sel in (b' ', b'\r'):
+
+            flag = True
+
+            while flag:
+
+                seldatetime = formatted_datetime()
+
+                stime = datetime.strptime(str(seldatetime), '%Y-%m-%dT%H:%M')
+
+                if stime.hour > datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute > datetime.now().minute):
+                    requester(SERVER_IP_ADDRESS,seldatetime, i)
+                    flag = False
+                
+                elif stime.hour < datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute < datetime.now().minute):
+                    print(f'\nPlease enter future time for schedule.\nTime you entered - {stime.hour}:{stime.minute}\nTime right now - {datetime.now().hour}:{datetime.now().minute}\n')
+                    time.sleep(2)
 
         n += 1
-        clear_screen()
+
+    clear_screen()
     print('All mails have been scheduled for the selected date and time.')
+    sys.exit()
+
+if __name__ == '__main__':
+    
+    main()
