@@ -81,6 +81,32 @@ def getscheduleid():
 
     return jsonify([str(i.id) for i in scheduler.get_jobs()])
 
+@app.get('/getJobs')
+def getJobs():
+    
+    job_obj = scheduler.get_jobs()
+    jobids = [str(i.id) for i in job_obj]
+    scheduletime = [datetime.strptime(str(i.next_run_time.hour)+":"+str(i.next_run_time.minute), "%H:%M").strftime("%I:%M %p") for i in job_obj]
+
+    job_time = {}
+
+    for i in range(len(job_obj)):
+        job_time[jobids[i]] = scheduletime[i]
+
+    return job_time
+
+@app.post('/editJobs')
+def editJobs():
+    
+
+
+    return
+
+@app.post('/remJob')
+def remJob():
+
+    return
+
 def send_draft(draft_id):
     
     creds = Credentials.from_authorized_user_file('token.json', SCOPES)
