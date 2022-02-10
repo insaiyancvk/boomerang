@@ -2,6 +2,7 @@ from datetime import datetime
 import requests, os, json, msvcrt, time, sys
 from auth import SCOPES
 from auth import start_auth
+from picker import Picker
 from datepicker import formatted_datetime
 
 from google.oauth2.credentials import Credentials
@@ -13,6 +14,7 @@ from rich.table import Table
 from rich.console import Console
 
 def get_local_ip():
+
     import subprocess as sp
 
     out = sp.getoutput('arp -a')
@@ -104,36 +106,7 @@ def clear_screen():
     elif os.name == 'posix':
         os.system('clear')
 
-def main():
-
-    creds = None
-    new = False
-
-    if os.path.exists('token.json'): # Check if token.json exists in client's system
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES) # Load the credentials
-    else:
-        new = True
-        start_auth()
-
-    if not creds or not creds.valid: # Check if the token is valid
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-    else:
-        start_auth() # Create a token by completing auth flow
-
-    SERVER_IP_ADDRESS = get_server_ip()
-
-    if new and (requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 200):
-        requests.get(SERVER_IP_ADDRESS+'remToken')
-
-    if requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 404: # Check if token.json exists in server
-        with open('token.json', 'r') as f:
-            requests.post(SERVER_IP_ADDRESS+'authtoken', json = json.load(f)) # make a post request and send token.json
-
-    try:
-        service = build('gmail', 'v1', credentials=creds)
-    except DefaultCredentialsError:
-        main()  
+def schedule(SERVER_IP_ADDRESS,service):
 
     print('Reading the drafts...')
 
@@ -192,7 +165,7 @@ def main():
                 if stime.hour > datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute > datetime.now().minute):
                     requester(SERVER_IP_ADDRESS,seldatetime, i)
                     flag = False
-                
+
                 elif stime.hour < datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute < datetime.now().minute):
                     print(f'\nPlease enter future time for schedule.\nTime you entered - {stime.hour}:{stime.minute}\nTime right now - {datetime.now().hour}:{datetime.now().minute}\n')
                     time.sleep(2)
@@ -202,6 +175,76 @@ def main():
     clear_screen()
     print('All mails have been scheduled for the selected date and time.')
     sys.exit()
+
+def main():
+
+    creds = None
+    new = False
+
+    if os.path.exists('token.json'): # Check if token.json exists in client's system
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES) # Load the credentials
+    else:
+        new = True
+        start_auth()
+
+    if not creds or not creds.valid: # Check if the token is valid
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+    else:
+        start_auth() # Create a token by completing auth flow
+
+    SERVER_IP_ADDRESS = get_server_ip()
+
+    if new and (requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 200):
+        requests.get(SERVER_IP_ADDRESS+'remToken')
+
+    if requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 404: # Check if token.json exists in server
+        with open('token.json', 'r') as f:
+            requests.post(SERVER_IP_ADDRESS+'authtoken', json = json.load(f)) # make a post request and send token.json
+
+    try:
+        service = build('gmail', 'v1', credentials=creds)
+    except DefaultCredentialsError:
+        main()  
+
+    picker = Picker(["Make a schedule","Check scheduled mails","Change scheduled date/time"],"Select your choice using arrow keys or press q to quit", indicator=" => ")
+    picker.register_custom_handler(ord('q'), lambda picker: exit())
+    picker.register_custom_handler(ord('Q'), lambda picker: exit())
+    _,ch = picker.start()
+
+    if ch == 0:
+
+        schedule(SERVER_IP_ADDRESS, service)
+    
+    elif ch == 1:
+
+        jobs = requests.get(SERVER_IP_ADDRESS+'getJobs')
+
+        n = 1
+
+        for draft_id, schedule_time in jobs.items():
+
+            details = get_draft_details(service, draft_id, 'metadata')
+            
+            subject = details['message']['payload']['headers'][3]['value']
+            receiver = details['message']['payload']['headers'][5]['value']
+
+            table = Table(show_header=True, header_style="bold cyan")
+
+            table.add_column("Draft no.")
+            table.add_column("Subject")
+            table.add_column("Receiver")
+            table.add_column("Scheduled at")
+            table.add_row(str(n), subject, receiver, schedule_time)
+            Console().print('\t\t',table)
+
+            n += 1
+
+
+    elif ch == 2:
+        pass
+
+
 
 if __name__ == '__main__':
     
