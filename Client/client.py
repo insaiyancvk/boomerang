@@ -196,18 +196,26 @@ def main():
     SERVER_IP_ADDRESS = get_server_ip()
 
     if new and (requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 200):
+        
         requests.get(SERVER_IP_ADDRESS+'remToken')
 
     if requests.get(SERVER_IP_ADDRESS+'checkToken').status_code == 404: # Check if token.json exists in server
+        
         with open('token.json', 'r') as f:
-            requests.post(SERVER_IP_ADDRESS+'authtoken', json = json.load(f)) # make a post request and send token.json
+            requests.post(
+                SERVER_IP_ADDRESS+'authtoken', 
+                json = json.load(f)) # make a post request and send token.json
 
     try:
         service = build('gmail', 'v1', credentials=creds)
     except DefaultCredentialsError:
         main()  
 
-    picker = Picker(["Make a schedule","Check scheduled mails","Change scheduled date/time"],"Select your choice using arrow keys or press q to quit", indicator=" => ")
+    picker = Picker(
+        ["Make a schedule","Check scheduled mails","Change scheduled date/time"],
+        "Select your choice using arrow keys or press q to quit", 
+        indicator=" => ")
+
     picker.register_custom_handler(ord('q'), lambda picker: exit())
     picker.register_custom_handler(ord('Q'), lambda picker: exit())
     _,ch = picker.start()
@@ -242,8 +250,107 @@ def main():
 
 
     elif ch == 2:
-        pass
 
+        draft_ids = requests.get(SERVER_IP_ADDRESS+'getscheduleid')
+
+        draft_details = {}
+
+        for draft_id in draft_ids:
+
+            details = get_draft_details(service, draft_id, 'metadata')
+
+            subject = details['message']['payload']['headers'][3]['value']
+            receiver = details['message']['payload']['headers'][5]['value']
+
+            draft_details[draft_id] = [subject, receiver]
+        
+        flag1 = True
+
+        while flag1:
+
+            p = Picker(
+                [str(i[0]+i[1]) for i in draft_details],
+                "Select your choice using arrow keys or press q to quit", 
+                indicator=" => ")
+
+            p.register_custom_handler(ord('q'), lambda p: exit())
+            p.register_custom_handler(ord('Q'), lambda p: exit())
+            _,c = p.start()
+
+            flag = True
+
+            while flag:
+
+                seldatetime = formatted_datetime()
+
+                stime = datetime.strptime(str(seldatetime), '%Y-%m-%dT%H:%M')
+
+                if stime.hour > datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute > datetime.now().minute):
+
+                    res = requests.post(
+                        SERVER_IP_ADDRESS+'editJobs', 
+                        data = {
+                            'id': list(draft_details)[c], 
+                            'time': seldatetime})
+                    if res.response == 200:
+                        print("Rescheduled successfully.")
+                    flag = False
+
+                elif stime.hour < datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute < datetime.now().minute):
+                    print(f'\nPlease enter future time for schedule.\nTime you entered - {stime.hour}:{stime.minute}\nTime right now - {datetime.now().hour}:{datetime.now().minute}\n')
+                    time.sleep(2)
+
+            print("Do you want to continue? (Y/N)")
+            sel = msvcrt.getch()
+            if sel.lower() == 'y':
+                flag1 = True
+            else:
+                flag1 = False
+
+
+    elif ch == 3:
+
+        flag2 = True
+
+        while flag2:
+
+            draft_ids = requests.get(SERVER_IP_ADDRESS+'getscheduleid')
+
+            draft_details = {}
+
+            for draft_id in draft_ids:
+
+                details = get_draft_details(service, draft_id, 'metadata')
+
+                subject = details['message']['payload']['headers'][3]['value']
+                receiver = details['message']['payload']['headers'][5]['value']
+
+                draft_details[draft_id] = [subject, receiver]
+
+            p = Picker(
+                [str(i[0]+i[1]) for i in draft_details],
+                "Select your choice using arrow keys or press q to quit", 
+                indicator=" => ")
+
+            p.register_custom_handler(ord('q'), lambda p: exit())
+            p.register_custom_handler(ord('Q'), lambda p: exit())
+            _,c = p.start()
+
+            res = requests.post(
+                    SERVER_IP_ADDRESS+'editJobs', 
+                    data = {
+                        'id': list(draft_details)[c]})
+            
+            if res.response == 200:
+                print("Schedule removed successfully.")
+            
+            print("Do you want to continue? (Y/N)")
+            sel = msvcrt.getch()
+
+            if sel.lower() == 'Y':
+                flag2 = True
+            else:
+                flag2 = False
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 from datetime import datetime
 import os, json
+import sched
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -98,14 +99,23 @@ def getJobs():
 @app.post('/editJobs')
 def editJobs():
     
+    data = request.get_json()
 
+    id = data['id']
+    mtime = data['time']
 
-    return
+    scheduler.modify_job(job_id=id, next_run_time = mtime)
+
+    return 200
 
 @app.post('/remJob')
 def remJob():
 
-    return
+    draft_id = request.get_json()['id']
+
+    scheduler.remove_job(job_id=draft_id)
+
+    return 200
 
 def send_draft(draft_id):
     
