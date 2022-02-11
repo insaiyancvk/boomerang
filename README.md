@@ -1,5 +1,5 @@
-# boomerang
-A attempt to implement a _paid_ gmail service  in python using gmail API
+# Boomerang
+An attempt to implement a _paid_ gmail service  in python using gmail API
 
 ## What's "[Boomerang](https://boomeranggmail.com/)"?
 
