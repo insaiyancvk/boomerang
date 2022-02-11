@@ -1,7 +1,7 @@
 ## Required dependencies
 
 ```
-pip3 install tkcalendar tkTimePicker --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib flask rich
+pip3 install tkcalendar tkTimePicker --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib flask rich windows-curses
 ```
 
 ## Register an app on Google API console
