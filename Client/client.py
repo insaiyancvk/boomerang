@@ -67,11 +67,13 @@ def get_server_ip():
         with open('SERVERIP','r') as f:
             SERVERIP = f.read()
         
-        if requests.get(SERVERIP).text == 'Sup GAMER':
-            print('\nConnected to the server\n')
-            return SERVERIP
-        
-        else:
+        try:
+
+            if requests.get(SERVERIP).text == 'Sup GAMER':
+                print('\nConnected to the server\n')
+                return SERVERIP
+                
+        except TimeoutError:
             os.remove('SERVERIP')
             get_server_ip()
 
@@ -130,11 +132,12 @@ def schedule(SERVER_IP_ADDRESS,service):
 
         details = get_draft_details(service, i, 'metadata')
 
-        if details['message']['payload']['headers'][3]['value'] != '':
-            subject = details['message']['payload']['headers'][3]['value']
-        
-        if details['message']['payload']['headers'][5]['name'] == 'To':
-            receiver = details['message']['payload']['headers'][5]['value']
+        for j in details['message']['payload']['headers']:
+            
+                if j['name'] == 'Subject':
+                    subject = j['value']
+                elif j['name'] == 'To':
+                    receiver = j['value']
         
         table = Table(show_header=True, header_style="bold cyan")
 
@@ -162,12 +165,19 @@ def schedule(SERVER_IP_ADDRESS,service):
 
                 stime = datetime.strptime(str(seldatetime), '%Y-%m-%dT%H:%M')
 
-                if stime.hour > datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute > datetime.now().minute):
+                if stime > datetime.now():
+
+                    import pdb; pdb.set_trace()
+
                     requester(SERVER_IP_ADDRESS,seldatetime, i)
                     flag = False
 
-                elif stime.hour < datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute < datetime.now().minute):
-                    print(f'\nPlease enter future time for schedule.\nTime you entered - {stime.hour}:{stime.minute}\nTime right now - {datetime.now().hour}:{datetime.now().minute}\n')
+                else:
+
+                    print(
+                        f'\nPlease enter future time for schedule.',
+                        f'\nTime you entered - {str(stime.day)+"-"+str(stime.month)+"-"+str(stime.year)+"  "+datetime.strptime(str(stime.hour)+":"+str(stime.minute), "%H:%M").strftime("%I:%M %p")}',
+                        f'\nTime right now - {str(datetime.now().day)+"-"+str(datetime.now().month)+"-"+str(datetime.now().year)+"  "+datetime.strptime(str(datetime.now().hour)+":"+str(datetime.now().minute), "%H:%M").strftime("%I:%M %p")}\n')
                     time.sleep(2)
 
         n += 1
@@ -212,7 +222,12 @@ def main():
         main()  
 
     picker = Picker(
-        ["Make a schedule","Check scheduled mails","Change scheduled date/time"],
+        [
+            "Make a schedule",
+            "Check scheduled mails",
+            "Change scheduled date/time",
+            "Remove a schedule"],
+
         "Select your choice using arrow keys or press q to quit", 
         indicator=" => ")
 
@@ -226,27 +241,40 @@ def main():
     
     elif ch == 1:
 
-        jobs = requests.get(SERVER_IP_ADDRESS+'getJobs')
+        jobs = requests.get(SERVER_IP_ADDRESS+'getJobs').text
+
+        # import pdb; pdb.set_trace()
+
+
+        if len(eval(jobs)) == 0:
+            print("No schedules found. Exiting.")
+            sys.exit()
 
         n = 1
 
-        for draft_id, schedule_time in jobs.items():
+        table = Table(show_header=True, header_style="bold cyan")
+
+        table.add_column("Draft no.")
+        table.add_column("Subject")
+        table.add_column("Receiver")
+        table.add_column("Scheduled at")
+
+        for draft_id, schedule_time in eval(jobs).items():
 
             details = get_draft_details(service, draft_id, 'metadata')
             
-            subject = details['message']['payload']['headers'][3]['value']
-            receiver = details['message']['payload']['headers'][5]['value']
+            for i in details['message']['payload']['headers']:
+                if i['name'] == 'Subject':
+                    subject = i['value']
+                elif i['name'] == 'To':
+                    receiver = i['value']
 
-            table = Table(show_header=True, header_style="bold cyan")
-
-            table.add_column("Draft no.")
-            table.add_column("Subject")
-            table.add_column("Receiver")
-            table.add_column("Scheduled at")
-            table.add_row(str(n), subject, receiver, schedule_time)
-            Console().print('\t\t',table)
+            
+            table.add_row(str(n), subject, receiver, schedule_time+"\n")
 
             n += 1
+
+        Console().print('\t\t',table)
 
 
     elif ch == 2:
@@ -255,21 +283,26 @@ def main():
 
         draft_details = {}
 
-        for draft_id in draft_ids:
+        for draft_id in eval(draft_ids.text):
 
             details = get_draft_details(service, draft_id, 'metadata')
 
-            subject = details['message']['payload']['headers'][3]['value']
-            receiver = details['message']['payload']['headers'][5]['value']
+            for i in details['message']['payload']['headers']:
+                if i['name'] == 'Subject':
+                    subject = i['value']
+                elif i['name'] == 'To':
+                    receiver = i['value']
 
             draft_details[draft_id] = [subject, receiver]
         
         flag1 = True
 
+        import pdb; pdb.set_trace()
+
         while flag1:
 
             p = Picker(
-                [str(i[0]+i[1]) for i in draft_details],
+                [str(i[0]+" - "+i[1]) for i in draft_details.values()],
                 "Select your choice using arrow keys or press q to quit", 
                 indicator=" => ")
 
@@ -285,19 +318,23 @@ def main():
 
                 stime = datetime.strptime(str(seldatetime), '%Y-%m-%dT%H:%M')
 
-                if stime.hour > datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute > datetime.now().minute):
+                if stime > datetime.now():
 
                     res = requests.post(
                         SERVER_IP_ADDRESS+'editJobs', 
-                        data = {
+                        json = {
                             'id': list(draft_details)[c], 
                             'time': seldatetime})
-                    if res.response == 200:
+                    if res.status_code == 200:
                         print("Rescheduled successfully.")
                     flag = False
 
-                elif stime.hour < datetime.now().hour or (stime.hour == datetime.now().hour and stime.minute < datetime.now().minute):
-                    print(f'\nPlease enter future time for schedule.\nTime you entered - {stime.hour}:{stime.minute}\nTime right now - {datetime.now().hour}:{datetime.now().minute}\n')
+                else:
+
+                    print(
+                        f'\nPlease enter future time for schedule.',
+                        f'\nTime you entered  {str(stime.day)+"-"+str(stime.month)+"-"+str(stime.year)+"  "+datetime.strptime(str(stime.hour)+":"+str(stime.minute), "%H:%M").strftime("%I:%M %p")}',
+                        f'\nTime right now  {str(datetime.now().day)+"-"+str(datetime.now().month)+"-"+str(datetime.now().year)+"  "+datetime.strptime(str(datetime.now().hour)+":"+str(datetime.now().minute), "%H:%M").strftime("%I:%M %p")}\n')
                     time.sleep(2)
 
             print("Do you want to continue? (Y/N)")
@@ -314,21 +351,29 @@ def main():
 
         while flag2:
 
-            draft_ids = requests.get(SERVER_IP_ADDRESS+'getscheduleid')
+            draft_ids = requests.get(SERVER_IP_ADDRESS+'getJobs')
+            draft_ids = eval(draft_ids.text)
 
             draft_details = {}
 
-            for draft_id in draft_ids:
+            for draft_id, time in draft_ids.items():
 
                 details = get_draft_details(service, draft_id, 'metadata')
 
-                subject = details['message']['payload']['headers'][3]['value']
-                receiver = details['message']['payload']['headers'][5]['value']
+                for i in details['message']['payload']['headers']:
+                    
+                    if i['name'] == 'Subject':
+                        subject = i['value']
+                    elif i['name'] == 'To':
+                        receiver = i['value']
 
-                draft_details[draft_id] = [subject, receiver]
+                draft_details[draft_id] = [subject, receiver, time]
+
+            import pdb; pdb.set_trace()
+
 
             p = Picker(
-                [str(i[0]+i[1]) for i in draft_details],
+                [str(i[0]+" - "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
                 "Select your choice using arrow keys or press q to quit", 
                 indicator=" => ")
 
@@ -337,11 +382,11 @@ def main():
             _,c = p.start()
 
             res = requests.post(
-                    SERVER_IP_ADDRESS+'editJobs', 
-                    data = {
+                    SERVER_IP_ADDRESS+'remJob', 
+                    json = {
                         'id': list(draft_details)[c]})
             
-            if res.response == 200:
+            if res.status_code == 200:
                 print("Schedule removed successfully.")
             
             print("Do you want to continue? (Y/N)")
