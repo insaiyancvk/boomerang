@@ -1,6 +1,5 @@
 from datetime import datetime
 import os, json
-import sched
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -63,8 +62,6 @@ def boomerang():
     time = data['time']
     draft_id = data['draft_id']
 
-    # print(time, draft_id)
-
     date_time = datetime.strptime(str(time), '%Y-%m-%dT%H:%M')
 
     scheduler.add_job(
@@ -87,7 +84,8 @@ def getJobs():
     
     job_obj = scheduler.get_jobs()
     jobids = [str(i.id) for i in job_obj]
-    scheduletime = [datetime.strptime(str(i.next_run_time.hour)+":"+str(i.next_run_time.minute), "%H:%M").strftime("%I:%M %p") for i in job_obj]
+    
+    scheduletime = [ f"{str(i.next_run_time.day)}-{str(i.next_run_time.month)}-{str(i.next_run_time.year)}"+"\n"+str(datetime.strptime(str(i.next_run_time.hour)+":"+str(i.next_run_time.minute), "%H:%M").strftime("%I:%M %p")) for i in job_obj]
 
     job_time = {}
 
@@ -104,9 +102,11 @@ def editJobs():
     id = data['id']
     mtime = data['time']
 
-    scheduler.modify_job(job_id=id, next_run_time = mtime)
+    date_time = datetime.strptime(str(mtime), '%Y-%m-%dT%H:%M')
 
-    return 200
+    scheduler.modify_job(job_id=id, next_run_time = date_time)
+
+    return '',200
 
 @app.post('/remJob')
 def remJob():
@@ -115,7 +115,7 @@ def remJob():
 
     scheduler.remove_job(job_id=draft_id)
 
-    return 200
+    return '',200
 
 def send_draft(draft_id):
     
@@ -136,5 +136,5 @@ if __name__ == '__main__':
         '0.0.0.0', 
         5000, 
         threaded = True, 
-        # debug=True
+        debug=True
         )
