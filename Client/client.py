@@ -279,11 +279,11 @@ def main():
 
     elif ch == 2:
 
-        draft_ids = requests.get(SERVER_IP_ADDRESS+'getscheduleid')
+        draft_ids = requests.get(SERVER_IP_ADDRESS+'getJobs').text
 
         draft_details = {}
 
-        for draft_id in eval(draft_ids.text):
+        for draft_id in eval(draft_ids):
 
             details = get_draft_details(service, draft_id, 'metadata')
 
@@ -302,7 +302,8 @@ def main():
         while flag1:
 
             p = Picker(
-                [str(i[0]+" - "+i[1]) for i in draft_details.values()],
+                [str(i[0]+" - "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
+
                 "Select your choice using arrow keys or press q to quit", 
                 indicator=" => ")
 
