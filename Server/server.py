@@ -62,6 +62,8 @@ def boomerang():
     time = data['time']
     draft_id = data['draft_id']
 
+    #TODO: ADD 30S TO SCHEDULES THAT HAVE SAME TIME
+
     date_time = datetime.strptime(str(time), '%Y-%m-%dT%H:%M')
 
     scheduler.add_job(
