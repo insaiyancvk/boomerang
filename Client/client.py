@@ -283,7 +283,7 @@ def main():
 
         draft_details = {}
 
-        for draft_id in eval(draft_ids):
+        for draft_id, scheduled_time in eval(draft_ids).items():
 
             details = get_draft_details(service, draft_id, 'metadata')
 
@@ -293,7 +293,7 @@ def main():
                 elif i['name'] == 'To':
                     receiver = i['value']
 
-            draft_details[draft_id] = [subject, receiver]
+            draft_details[draft_id] = [subject, receiver, scheduled_time]
         
         flag1 = True
 
@@ -302,8 +302,7 @@ def main():
         while flag1:
 
             p = Picker(
-                [str(i[0]+" - "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
-
+                [str(i[0]+" to "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
                 "Select your choice using arrow keys or press q to quit", 
                 indicator=" => ")
 
@@ -374,7 +373,7 @@ def main():
 
 
             p = Picker(
-                [str(i[0]+" - "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
+                [str(i[0]+" to "+i[1]+" scheduled at "+i[2].replace('\\n',' ')) for i in draft_details.values()],
                 "Select your choice using arrow keys or press q to quit", 
                 indicator=" => ")
 
@@ -393,8 +392,8 @@ def main():
             print("Do you want to continue? (Y/N)")
             sel = msvcrt.getch()
 
-            if sel.lower() == 'Y':
-                flag2 = True
+            if sel.lower() == 'y':
+                continue
             else:
                 flag2 = False
 

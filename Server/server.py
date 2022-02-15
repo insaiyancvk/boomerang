@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os, json
 
 from flask import Flask, jsonify, request
@@ -62,9 +62,12 @@ def boomerang():
     time = data['time']
     draft_id = data['draft_id']
 
-    #TODO: ADD 30S TO SCHEDULES THAT HAVE SAME TIME
+    #TODO: ADD 10S TO SCHEDULES THAT HAVE SAME TIME
 
-    date_time = datetime.strptime(str(time), '%Y-%m-%dT%H:%M')
+    date_time = datetime.strptime(str(time)+":00", '%Y-%m-%dT%H:%M:%S')
+    
+    while str(date_time) in [str(i.next_run_time).replace('+05:30','') for i in scheduler.get_jobs()]:
+        date_time += timedelta(seconds=10)
 
     scheduler.add_job(
         send_draft,
@@ -106,6 +109,9 @@ def editJobs():
 
     date_time = datetime.strptime(str(mtime), '%Y-%m-%dT%H:%M')
 
+    while str(date_time) in [str(i.next_run_time).replace('+05:30','') for i in scheduler.get_jobs()]:
+        date_time += timedelta(seconds=10)
+
     scheduler.modify_job(job_id=id, next_run_time = date_time)
 
     return '',200
@@ -120,6 +126,8 @@ def remJob():
     return '',200
 
 def send_draft(draft_id):
+
+    print("Sending mail")
     
     creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
@@ -132,6 +140,11 @@ def send_draft(draft_id):
     userId='me',
     body = {'id': draft_id}
     ).execute()
+
+@app.get('/debugmode')
+def debug():
+    import pdb; pdb.set_trace()
+    return 'Debug Mode ended',200
 
 if __name__ == '__main__':
     app.run(
