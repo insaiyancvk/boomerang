@@ -99,5 +99,6 @@ Client side:
 - Save [$60/year](https://www.boomeranggmail.com/subscriptions.html). Instead get a Raspberry Pi 4 for $50.
 
 ## TODO
-- Be able to modify the scheduled date and time
-- List scheduled mails
+- ~~Be able to modify the scheduled date and time~~
+- ~~List scheduled mails~~
+- Make a fancy installer to client and server side scripts
